@@ -105,7 +105,7 @@
 ; our list-of-strings to a list of lists, each sublist being a list of strings: 
 ; ("first" "last" "score1" "score2" "score3")
 (define workinglist (line-to-list (string-split (first (port->lines  
-   (open-input-file "input1.txt"
+   (open-input-file "GradebookData.txt"
                        #:mode 'text) #:line-mode 'return)) "\n")))
 ; compute averages, sort by name, save that list. 
 (define printoutlist (sort-name (map compute-avgs workinglist)))
