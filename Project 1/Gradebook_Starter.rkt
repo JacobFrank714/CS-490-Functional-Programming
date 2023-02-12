@@ -73,14 +73,32 @@
 ; pass the rest of the list down to be averaged. 
 (define (compute-avgs lst)
   (define (avg-scores lst)
-    (let ([nums (map string->number lst)])
-      (exact->inexact (/ (apply + nums) (length nums)))))
+    (let([nums (map string->number lst)])
+      (let(
+        [quizzes (take nums 4)]
+        [tests (take-right nums 4)])
+        (grade? (exact->inexact (/ (+ (* (apply + (map (lambda(x)(/ x 20)) quizzes)) .35) (* (apply + tests) .65)) 2))))))
+  (define (grade? score)
+    (cond
+      [(>= score 93) (list score "A")]
+      [(>= score 90) (list score "A-")]
+      [(>= score 87) (list score "B+")]
+      [(>= score 83) (list score "B")]
+      [(>= score 80) (list score "B-")]
+      [(>= score 77) (list score "C+")]
+      [(>= score 73) (list score "C")]
+      [(>= score 70) (list score "C-")]
+      [(>= score 67) (list score "D+")]
+      [(>= score 63) (list score "D")]
+      [(>= score 60) (list score "D-")]
+      [else (list score "F")]))
   (if (empty? lst)
       empty
       (let
           ([m (first lst)]
           [n (first (rest lst))])
-          (list m n (avg-scores (rest (rest lst)))))))
+          (list m n (first (avg-scores (rest (rest lst)))) (second (avg-scores (rest (rest lst))))))))
+
 
 
 ; output preparation. Tail recursive. Take the first list-of-strings, 
@@ -93,7 +111,7 @@
         so-far
         (letrec (
                  [line (first lst)]
-                 [outline (string-append (car line) " " (cadr line) " " (number->string (caddr line)) "\n")])
+                 [outline (string-append (car line) " " (cadr line) " " (number->string (caddr line)) " " (cadddr line)"\n")])
           (iter (rest lst) (string-append so-far outline)))))
   (iter lst ""))
 
