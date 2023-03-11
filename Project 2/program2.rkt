@@ -1,10 +1,17 @@
 #lang racket
 (require 2htdp/batch-io)
 
-(define (process-files f1 f2)
+(define (process-file f1)
+  (string-split (string-normalize-spaces (clean-string (string-downcase(read-file f1)))) " "))
+
+(define (clean-string str)
+  (define (clean marks str)
+    (if (empty? marks)
+    str
+    (clean (rest marks) (string-replace str (first marks) " "))))
   (let
-      ([file-string1 (string-downcase(read-file f1))]
-       [file-string2 (string-downcase(read-file f2))])
-    (string-trim file-string1 #:repeat? #t)))
-    
-(process-files "Doyle.txt" "Lovecraft.txt")
+    ([deletes (list "\n" "\"" "?" "," "." "!" ";" "-" "_" ":")])
+    (clean deletes str)))
+
+(process-file "Doyle.txt")
+(process-file "Lovecraft.txt")
