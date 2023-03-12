@@ -14,15 +14,25 @@
     ([deletes (list "\n" "\"" "?" "," "." "!" ";" "-" "_" ":")])
     (clean deletes str)))
 
-
-(process-file "Lovecraft.txt")
-
 (define (make-reference-hash lst)
-  (define (iter so-far to-go)
+  (define (iter so-far to-go count)
     (if (empty? to-go)
-    so-far
-    (iter (hash-set so-far (first to-go) 1) (rest to-go))))
+    (list so-far count)
+    (if (hash-ref so-far (first to-go) #f)
+    (iter (hash-set so-far (first to-go) (+ (hash-ref so-far (first to-go)) 1)) (rest to-go) (+ count 1))
+    (iter (hash-set so-far (first to-go) 1) (rest to-go) (+ count 1)))))
   (let ([table (hash)])
-    (iter table lst)))
+    (iter table lst 0)))
 
-(make-reference-hash (process-file "Doyle.txt"))
+(define (normalize table lst count)
+    (if (empty? lst)
+    table
+    (normalize (hash-set table (first lst) (* (log (/ (hash-ref table (first lst)) count) 10) -1)) (rest lst) count)))
+
+(define lovecraft (process-file "Lovecraft.txt"))
+(define Doyle (process-file "Doyle.txt"))
+
+(define pre-normal-lovecraft(make-reference-hash lovecraft))
+(define pre-normal-doyle(make-reference-hash Doyle))
+
+(normalize (first pre-normal-doyle) Doyle (second pre-normal-doyle))
