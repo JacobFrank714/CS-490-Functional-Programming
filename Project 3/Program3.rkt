@@ -7,7 +7,7 @@
     (empty-stack))
 
 (define (SHOW stack)
-    (displayln (in-stack stack)))
+    (in-stack stack))
 
 (define (TOP stack)
     (displayln (top stack)))
@@ -44,17 +44,12 @@
 
 ;;; (define (END stack)
 ;;;     )
-
+(define stack (empty-stack))
 (let loop ()
     (display "Input: ")
     (define a (read-line (current-input-port) 'any))
-    (define (iter stack to-do)
-        (if (empty? to-do)
-            stack
-            (iter (push stack (first to-do)) (rest to-do))))
-    (let ([in (reverse (string-split a " "))])
-        (define stack (iter (empty-stack) in))
-        (displayln (in-stack stack)))
-    
+    (let ([in (string-split a " ")])
+        
+        (print (push stack in)))
     
     (loop))
