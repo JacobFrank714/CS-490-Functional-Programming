@@ -4,7 +4,7 @@
 
 ; Read stop words
 (define stop-words
-  (with-input-from-file "stop_words.txt"
+  (with-input-from-file "Project 4/stop_words.txt"
     (lambda () (string-split (read-line) " "))))
 
 ; Preprocessing functions
@@ -16,12 +16,16 @@
     (lambda ()
       (let* ([content (read-line)]
              [words (map string->symbol (string-split (remove-punctuation content) " "))])
-        (for/fold ([word-hash (make-hash)]) ([word words])
-          (when (not (member word stop-words))
-            (hash-update word-hash word add1 0))
-          (for/hash ([(word count) (in-hash word-hash)])
-            (values word (/ (- (log 10 count)) (log 10 (length words)))))
-          )))))
+        (define word-hash
+          (for/fold ([word-hash (make-hash)]) ([word words])
+            (when (not (member word stop-words))
+              (hash-update! word-hash word add1 0))
+            word-hash))
+        (for/hash ([(word count) (in-hash word-hash)])
+          (values word (if (and (> (length words) 0) (> count 0))
+                           (/ (- (log count)) (log (length words)))
+                           0)))
+        ))))
 
 ; Process all files and create a hash of hashes
 (define (process-files file-list)
@@ -38,21 +42,56 @@
       (define score
         (for/sum ([word search-words] #:when (hash-has-key? word-scores word))
           (hash-ref word-scores word)))
-      (values filename matches score))))
+      (list filename matches score))))
 
 (define (display-results ranked-results)
   (for ([result ranked-results])
     (printf "~a~%" (with-input-from-file (first result) read-line))))
 
 ; Main program
-(define corpus (process-files '("Files/001.txt" "Files/002.txt" "Files/003.txt" ... "Files/025.txt")))
+(define corpus (process-files '(
+  "Project 4/Files/001.txt" 
+  "Project 4/Files/002.txt" 
+  "Project 4/Files/003.txt" 
+  "Project 4/Files/004.txt" 
+  "Project 4/Files/005.txt" 
+  "Project 4/Files/006.txt" 
+  "Project 4/Files/007.txt" 
+  "Project 4/Files/008.txt" 
+  "Project 4/Files/009.txt" 
+  "Project 4/Files/010.txt" 
+  "Project 4/Files/011.txt" 
+  "Project 4/Files/012.txt" 
+  "Project 4/Files/013.txt" 
+  "Project 4/Files/014.txt" 
+  "Project 4/Files/015.txt" 
+  "Project 4/Files/016.txt" 
+  "Project 4/Files/017.txt" 
+  "Project 4/Files/018.txt" 
+  "Project 4/Files/019.txt" 
+  "Project 4/Files/010.txt"
+  "Project 4/Files/021.txt" 
+  "Project 4/Files/022.txt" 
+  "Project 4/Files/023.txt" 
+  "Project 4/Files/024.txt" 
+  "Project 4/Files/025.txt")))
+
+(define (string-contains? str substr)
+  (regexp-match? (regexp-quote substr) str))
 
 (define (main)
-  (printf "Enter search words (separated by space): ")
-  (define search-words (map string->symbol (string-split (read-line) " ")))
-  (define search-results (search corpus search-words))
-  (define ranked-results
-    (sort search-results (lambda (a b) (or (> (second a) (second b)) (< (third a) (third b))))))
-  (display-results ranked-results))
+  (let loop ()
+    (printf "Enter search words (separated by space) or type 'exit' to quit: ")
+    (define input (read-line))
+    (cond
+      [(string-contains? input "exit")
+       (printf "Goodbye!~%")]
+      [else
+       (define search-words (map string->symbol (string-split input " ")))
+       (define search-results (search corpus search-words))
+       (define ranked-results
+         (sort search-results (lambda (a b) (or (> (second a) (second b)) (< (third a) (third b))))))
+       (display-results ranked-results)
+       (loop)])))
 
 (main)
