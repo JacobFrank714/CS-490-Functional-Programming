@@ -1,36 +1,58 @@
 #lang racket
-(require 2htdp/batch-io)
 
-(define (process-file f1)
-  (string-split (string-normalize-spaces (clean-string (string-downcase(read-file f1)))) " "))
-;;; takes all unwanted characters out of the input string
-(define (clean-string str)
-  ;;; replaces the first character in the marks list with a space until marks empty
-  (define (clean marks str)
-    (if (empty? marks)
-    str
-    (clean (rest marks) (string-replace str (first marks) " "))))
-  (let
-    ([deletes (list "\n" "\"" "?" "," "." "!" ";" "-" "_" ":")])
-    (clean deletes str)))
+(require srfi/1)
 
-(define (make-reference-hash lst)
-;;; takes a string and outputs a hash of (word: amount-seen)
-  (define (iter so-far to-go count)
-    (if (empty? to-go)
-      (list so-far count)
-      (if (hash-has-key? so-far (first to-go))
-        (iter (hash-set so-far (first to-go) (+ (hash-ref so-far (first to-go)) 1)) (rest to-go) (+ count 1))
-        (iter (hash-set so-far (first to-go) 1) (rest to-go) (+ count 1)))))
-  (let ([table (hash)])
-    (iter table lst 0)))
+; Read stop words
+(define stop-words
+  (with-input-from-file "stop_words.txt"
+    (lambda () (string-split (read-line) " "))))
 
-(define (normalize table count)
-;;; gets a hash table and changes the values into a normalized frequency of each word in the table
-  (define (iter table lst count)
-  (if (empty? lst)
-    table
-    (iter (hash-set table (first lst) (* (log (/ (hash-ref table (first lst)) count) 10) -1)) (rest lst) count))
-    )
-  (let ([lst (hash-keys table)])
-  (iter table lst count)))
+; Preprocessing functions
+(define (remove-punctuation str)
+  (regexp-replace* #rx"[[:punct:]]" str ""))
+
+(define (process-file filename)
+  (with-input-from-file filename
+    (lambda ()
+      (let* ([content (read-line)]
+             [words (map string->symbol (string-split (remove-punctuation content) " "))])
+        (for/fold ([word-hash (make-hash)]) ([word words])
+          (when (not (member word stop-words))
+            (hash-update word-hash word add1 0))
+          (for/hash ([(word count) (in-hash word-hash)])
+            (values word (/ (- (log 10 count)) (log 10 (length words)))))
+          )))))
+
+; Process all files and create a hash of hashes
+(define (process-files file-list)
+  (for/hash ([filename file-list])
+    (values filename (process-file filename))))
+
+; User interaction functions
+(define (search corpus search-words)
+  (for/list ([filename (hash-keys corpus)])
+    (let ([word-scores (hash-ref corpus filename)])
+      (define matches
+        (for/sum ([word search-words] #:when (hash-has-key? word-scores word))
+          1))
+      (define score
+        (for/sum ([word search-words] #:when (hash-has-key? word-scores word))
+          (hash-ref word-scores word)))
+      (values filename matches score))))
+
+(define (display-results ranked-results)
+  (for ([result ranked-results])
+    (printf "~a~%" (with-input-from-file (first result) read-line))))
+
+; Main program
+(define corpus (process-files '("Files/001.txt" "Files/002.txt" "Files/003.txt" ... "Files/025.txt")))
+
+(define (main)
+  (printf "Enter search words (separated by space): ")
+  (define search-words (map string->symbol (string-split (read-line) " ")))
+  (define search-results (search corpus search-words))
+  (define ranked-results
+    (sort search-results (lambda (a b) (or (> (second a) (second b)) (< (third a) (third b))))))
+  (display-results ranked-results))
+
+(main)
